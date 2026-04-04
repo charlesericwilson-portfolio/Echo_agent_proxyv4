@@ -34,7 +34,7 @@ This separation keeps the main model focused, reduces context bloat, and enables
 **Current Phase:** Week 1 – Foundation & Architecture  
 **Goal:** Capstone-ready local red team agent by mid-July 2026
 
-See `docs/PROJECT_PROPOSAL.md` and `docs/TIMELINE.md` for full details.
+See `Proposal.md` and `Timeline.md` for full details.
 
 ---
 
