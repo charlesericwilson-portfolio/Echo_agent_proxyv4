@@ -2,7 +2,7 @@
 
 **A Session-Aware, Multi-Component Local LLM Agent Framework for Red Team Operations**
 
-Built with ❤️ by Charles | Guided by Grok (xAI)
+Built with ❤️ by Charles | Assisted by Grok (xAI)
 
 ---
 
