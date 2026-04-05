@@ -2,7 +2,7 @@
 
 **A Session-Aware, Multi-Component Local LLM Agent Framework for Red Team Operations**
 
-Built with ❤️ by Charles | Assisted by Grok (xAI)
+Built with dreams by Charles | Assisted by Grok (xAI)
 
 ---
 
@@ -60,7 +60,7 @@ echo-agent-proxy/
 
 See `docs/TIMELINE.md` for the detailed 12-week plan.
 
-**Phase 1** (Current): Project setup, database schema, improved PTY backend  
+**Phase 1** (Current): Project setup, database schema, improved PTY backend, build orchestrator, build summarizer, and test 
 
 ---
 
