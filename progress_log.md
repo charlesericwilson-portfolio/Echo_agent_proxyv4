@@ -1,115 +1,58 @@
 # Echo Agent Proxy - Progress Log
 
-## Week 1 (April 2026) - Foundation & Architecture
+## Day 1 (April 4, 2026) - Foundation & Architecture
 
-**Date:** April 4, 2026  
-**Status:** In Progress
+**Status:** Completed
 
-### Completed Today:
-- Created clean, professional project folder structure
-- Added proper .gitignore
-- Populated professional README.md
-- Started consistent documentation habit with `progress_log.md`
-
-### Next Immediate Tasks:
-- Design and implement SQLite database schema (`database/schema.sql`)
-- Begin work on the Orchestrator service
-
-This is the first properly structured project I've built. Documentation habit started.
-
-Goal: Complete Phase 1 foundation by end of this week.
-
-### Update - April 4, 2026 (Evening)
-- Successfully created and initialized SQLite database (`database/echo.db`)
-- Tables created: sessions, audit_log, summaries, session_memory
-- View created: active_sessions_view
-- Database is now ready to track persistent sessions and full audit trail
-
-Week 1 foundation is looking strong. Documentation habit is improving.
-
-### Update - April 4, 2026 (Late)
-- Orchestrator v0.4 successfully running on port 8000
-- Basic endpoints working (/ , /health)
-- PTY session manager created in src/pty_backend/
-- Database fully integrated with orchestrator
-- First major integration milestone achieved
-
-Week 1 foundation is complete. Moving into Week 2 soon with Heartbeat and session management.
-
-Documentation habit is holding.
-
-### Week 1 Completion - April 4, 2026
-- Project structure finalized and cleaned up
-- Professional README.md written
-- SQLite database schema designed and initialized
-- Orchestrator v0.4 running successfully on port 8000
-- PTY session manager created in src/pty_backend/
-- Git repository properly initialized and updated
-
-**Week 1 Goals Achieved:** Foundation laid successfully.
-
-Ready to start Week 2 (Heartbeat Monitor + better session management).
-
-Feeling good about the structured approach.
-
-### Major Update - April 4, 2026 (Full Day Progress)
-
-**Week 1 - Foundation & Architecture - COMPLETED**
-
-**Major Accomplishments Today:**
-- Created clean, professional project structure with proper separation of concerns
-- Wrote professional README.md and updated documentation
+### Major Accomplishments:
+- Created clean, professional project folder structure with proper separation of concerns
+- Added proper .gitignore and wrote professional README.md
 - Designed and implemented SQLite database schema (sessions, audit_log, summaries, session_memory)
 - Initialized database (`database/echo.db`)
-- Built Orchestrator v0.6 with FastAPI (running on port 8000)
-- Created PTY Session Manager (`src/pty_backend/session_manager.py`)
-- Created Heartbeat Monitor skeleton (`src/heartbeat/monitor.py`) with smart prompt detection
-- Integrated basic background task system for Heartbeat
-- Successfully ran Orchestrator with Heartbeat starting automatically
-- Downloaded and quantized Qwen2.5-1.5B-Instruct for summarization (running on port 8082)
-
-**Current Running Components:**
-- Main model (Qwen2.5-Coder-14B) 
-- Small summarizer model (Qwen2.5-1.5B) on port 8082
-- Orchestrator v0.6 on port 8000 with Heartbeat active
-
-**Next (Week 2):**
-- Fully connect Heartbeat to small summarizer model
-- Improve session creation and command routing
-- Begin integrating Tool Call Checker
-
-Documentation habit is improving. First structured project foundation successfully laid.
-
-Feeling motivated.
-
-### Major Progress Update - April 4, 2026 (Evening)
-
-**Week 1 - Foundation: COMPLETED**  
-**Week 2 - Heartbeat Monitor: STARTED & PARTIALLY WORKING**
-
-**Key Achievements Today:**
-- Finalized clean professional project structure
-- Created comprehensive SQLite database schema (sessions, audit_log, summaries, session_memory)
-- Built and initialized `echo.db`
-- Developed Orchestrator v1.1 with FastAPI and proper lifespan management
+- Built Orchestrator with FastAPI and proper lifespan management
 - Created PTY Session Manager with persistent session support
-- Implemented Heartbeat Monitor (v1.0) with background task
+- Implemented Heartbeat Monitor with background task
 - Successfully integrated small Qwen2.5-1.5B summarizer model on port 8082
-- Achieved first end-to-end summaries! Heartbeat is now detecting PTY output and saving summaries to database
-- Multiple successful tests with parallel session creation and command execution
+- Achieved first end-to-end summaries (Heartbeat detecting PTY output and saving to database)
+- Multiple successful tests with session creation and command execution using bash
+- Git repository properly initialized and updated
 
-**Current Working Components:**
+**Key Working Components:**
 - Main reasoning model (Qwen2.5-Coder-14B)
-- Small summarizer model (Qwen2.5-1.5B) 
+- Small summarizer model (Qwen2.5-1.5B)
 - Orchestrator with session endpoints
 - Heartbeat Monitor successfully generating and storing summaries
 
-**Next Priorities (Week 2):**
-- Improve summarization prompt for cleaner, more useful red team summaries
-- Better ANSI stripping and output cleaning
-- Integrate Tool Call Checker
-- Test parallel msfconsole + bash sessions
+**Challenges Faced:**
+- Persistent freezing when sending commands to sessions
+- Async/event loop issues with PTY I/O
+- High VRAM usage on the small summarizer model
+- Import and background task startup problems
 
-This is the first day we've had a working multi-component system with real summarization. Documentation habit is holding strong.
+**Lessons Learned:**
+- Async + PTY integration requires careful use of `asyncio.to_thread` and non-blocking FDs
+- Background tasks need proper lifespan management in FastAPI
+- Order of component initialization is critical
+- Documentation habit is important even when moving fast
 
-Feeling very motivated.
+**Current Status:**
+The core loop (session creation → command → output → summary) is partially functional with bash sessions. The system is still unstable with freezing on some requests, but the overall architecture is solid.
+
+---
+
+## Day 2 (April 5, 2026) - Current Day
+
+**Status:** In Progress
+
+**Goals for Today:**
+- Stabilize PTY integration to reduce/eliminate freezing
+- Improve summarization prompt for shorter, cleaner red team output
+- Test real parallel sessions (especially msfconsole)
+- Begin integrating the main 14B model (Echo) into the full loop
+
+**Current Focus:**
+We are now moving from basic bash functionality to testing with msfconsole and closing the full agent loop (Echo → Orchestrator → PTY → Heartbeat → Summary back to Echo).
+
+Documentation habit is holding. Moving fast but trying to keep things structured.
+
+Feeling motivated.
