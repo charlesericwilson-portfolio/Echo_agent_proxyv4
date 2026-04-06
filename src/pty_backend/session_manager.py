@@ -7,6 +7,10 @@ import os
 import pty
 import subprocess
 from typing import Dict, Optional
+from pathlib import Path
+
+BASE_DIR = Path(__file__).parent.parent.parent
+DB_PATH = BASE_DIR / "database" / "echo.db"
 
 active_sessions: Dict[str, 'PTYSession'] = {}
 
@@ -69,9 +73,25 @@ class PTYSession:
 async def create_session(session_id: str, command: str = "bash -i"):
     if session_id in active_sessions:
         return {"status": "exists", "session_id": session_id}
+
     session = PTYSession(session_id, command)
     await session.start()
     active_sessions[session_id] = session
+
+    # Make sure we write to the database
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO sessions (session_id, name, tool_type, status, command)
+            VALUES (?, ?, ?, 'active', ?)
+        """, (session_id, session_id, "general", command))
+        conn.commit()
+        conn.close()
+        print(f"[DB] ✓ Session '{session_id}' inserted into database")
+    except Exception as e:
+        print(f"[DB] Failed to insert session '{session_id}' into database: {e}")
+
     return {"status": "created", "session_id": session_id}
 
 async def send_to_session(session_id: str, command: str):
