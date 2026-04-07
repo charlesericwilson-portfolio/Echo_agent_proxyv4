@@ -1,6 +1,6 @@
-# Echo Agent Proxy
+# Echo Agent 
 
-**Experimental raw-text persistent PTY agent for red team / pentest workflows**
+Echo Agent Proxy is an in development multi-model execution framework that enforces approval and monitoring before running AI-generated commands in isolated terminal sessions.
 
 This project started with the simple wrapper in Echo_agent. We later experimented with a more ambitious architecture.
 Built as a personal capstone / learning project by Charles (Eric) in collaboration with Grok (xAI).
