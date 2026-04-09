@@ -3,7 +3,7 @@
 > I learned a lot from it, but it became too complex and unreliable.  
 >  
 > The current active development has moved to the Rust + tmux version:  
-> **[Echo_tmux (Rust)](https://github.com/charlesericwilson-portfolio/Echo_tmux)**
+> **[Echo_Rust Agent Proxyv5](https://github.com/charlesericwilson-portfolio/Echo_rust_agent_proxyv5)**
 
 ---
 
