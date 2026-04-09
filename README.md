@@ -1,3 +1,15 @@
+> **This repository is archived**  
+> This was an earlier experimental Python version of Echo Agent Proxy (using raw PTY sessions).  
+> I learned a lot from it, but it became too complex and unreliable.  
+>  
+> The current active development has moved to the Rust + tmux version:  
+> **[Echo_tmux (Rust)](https://github.com/charlesericwilson-portfolio/Echo_tmux)**
+
+---
+
+# Echo Agent Proxy (Python) - Archived
+
+Old experimental version with persistent PTY sessions, heartbeat monitor, database, and summarizer.
 # Echo Agent 
 
 Echo Agent Proxy is an in development multi-model execution framework that enforces approval and monitoring before running AI-generated commands in isolated terminal sessions
