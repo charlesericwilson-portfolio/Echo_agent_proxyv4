@@ -4,7 +4,9 @@ Echo Agent Proxy is an in development multi-model execution framework that enfor
 Here is a flow diagram
 
 Brain → Approval → Orchestrator → PTY Session
-   ↑                                   ↓
+
+   ↑
+                                      ↓
    ←──── Summarizer ←────── DB ←───────
 
 This project started with the simple wrapper in Echo_agent. We later experimented with a more ambitious architecture.
