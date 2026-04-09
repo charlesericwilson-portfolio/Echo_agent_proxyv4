@@ -32,11 +32,11 @@ flowchart TD
     style K fill:#c084fc,stroke:#6b21a8
 ```
 
-This project started with the simple wrapper in Echo_agent. We later experimented with a more ambitious architecture.
+This project started with the simple wrapper in [Echo_agent](https://github.com/charlesericwilson-portfolio/Echo_agentv1-2/tree/main/Echo_project). We later ported it to rust and switched to tmux.
 Built as a personal capstone / learning project by Charles (Eric) in collaboration with Grok (xAI).
 
 **Status: Work in Progress (Alpha / Experimental)**  
-Many core pieces work, but long-running command capture (e.g. nmap, msfconsole) and reliable feedback loops are still flaky. This repo shows the full journey — the wins, the pain, and the lessons.
+Many core pieces work, but long-running command capture (e.g. nmap, msfconsole) and reliable feedback loops are still flaky but should be solved with switching to tmux and coding in Rust. This repo shows the full journey — the wins, the pain, and the lessons.
 
 ## What We Built
 
@@ -110,9 +110,9 @@ Basic flow:
 
 **Warning**: This is experimental red-team tooling. Use only on systems you own and have explicit permission to test.
 
-## Future Plans (If I Pick It Back Up)
+## Future Plans (When I Pick It Back Up)
 
-- Simplify to one reliable session + direct feedback first
+- From lessons learned from [Echo_tmux_agentv3](https://github.com/charlesericwilson-portfolio/Echo_tmux_agentv3) we are going to switch to tmux instead of pty as well as code in Rust
 - Improve completion detection for long-running commands
 - Add stricter safety layers (beyond prompt)
 - Possibly turn the summarizer into a clean standalone tool
