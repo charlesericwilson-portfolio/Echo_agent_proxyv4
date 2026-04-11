@@ -141,3 +141,6 @@ Built with the assistance of Grok XAI — April 2026
 Charles (Eric) — Youngsville, LA
 
 "Never giving up, even when it gets messy."
+
+## status Aprol 11, 2026
+This repo has had 80 unique cloners + 16 YouTube refferals. Next steps we will be improving output capture from lessons learned in v5.
