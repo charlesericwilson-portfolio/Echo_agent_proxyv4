@@ -1,7 +1,3 @@
-> **This repository is archived**  
-> This was an earlier experimental Python version of Echo Agent Proxy (using raw PTY sessions).  
-> I learned a lot from it, but it became too complex and unreliable.  
->  
 > The current active development has moved to the Rust + tmux version:  
 > **[Echo_Rust Agent Proxyv5](https://github.com/charlesericwilson-portfolio/Echo_rust_agent_proxyv5)**
 
