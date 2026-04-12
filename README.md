@@ -44,103 +44,104 @@ flowchart TD
     style K fill:#c084fc,stroke:#6b21a8
 ```
 
-This project started with the simple wrapper in [Echo_agent](https://github.com/charlesericwilson-portfolio/Echo_agentv1-2/tree/main/Echo_project). We later ported it to rust and switched to tmux.
-Built as a personal capstone / learning project by Charles (Eric) in collaboration with Grok (xAI).
+# Echo Agent Proxy
 
-**Status: Work in Progress (Alpha / Experimental)**  
-Many core pieces work, but long-running command capture (e.g. nmap, msfconsole) and reliable feedback loops are still flaky but should be solved with switching to tmux and coding in Rust. This repo shows the full journey — the wins, the pain, and the lessons.
+This project started with the simple wrapper in [Echo_agent v1-2](https://github.com/charlesericwilson-portfolio/Echo_agentv1-2/tree/main/Echo_project).  
+We later ported parts to Rust and experimented with tmux for better persistent sessions.
+
+**Built as a personal capstone / learning project** by Charles (Eric) in collaboration with Grok (xAI).
+
+**Status:** Work in Progress (Alpha / Experimental)
 
 ## What We Built
 
-This project explores a **non-standard approach** to building a local AI agent:
+A local AI red-team agent using **raw-text tool calling** (`session:NAME command`) instead of JSON function calling.
 
-- Raw text tool calling using the format `session:NAME command` (instead of JSON function calling)
-- Persistent interactive PTY sessions (bash, msfconsole, etc.) that can be created, reused, and switched between
-- Heartbeat monitor that polls sessions for new output and triggers summarization
-- Lightweight summarizer model (fine-tuned Qwen 3B) for cleaning tool output into concise red-team findings
-- SQLite database for tracking sessions, audit logs, and summaries
-- FastAPI orchestrator to glue everything together
-- Python wrapper for chatting with the main 14B Qwen model
-- Context management, logging, and safety considerations
+Key features:
+- Persistent interactive sessions (bash, msfconsole, etc.)
+- Heartbeat monitor + summarizer for cleaning tool output
+- SQLite database for sessions, audit logs, and summaries
+- FastAPI orchestrator
+- Python wrapper for chatting with the main 14B Echo model
 
-The goal was a local, controllable red-team assistant that feels more like a skilled partner than a rigid JSON tool caller.
+The goal was a controllable, natural-feeling local red-team assistant that feels more like a skilled partner than a rigid tool caller.
 
 ## Our Journey (April 2026)
 
-This all started when I shared an early version of "Echo" (a custom 14B model) with Grok and asked for thoughts. What followed was an intense two-week build sprint:
+Started when I shared an early version of "Echo" (a custom 14B model) with Grok and asked for thoughts. What followed was an intense build sprint:
 
-- **Week 1**: Designed the architecture, created professional docs (PROJECT_PROPOSAL.md, TIMELINE.md, progress_log.md), built the SQLite schema, PTY backend, and FastAPI orchestrator.
-- **Week 2**: Added heartbeat monitoring, trained a small summarizer model with Unsloth, integrated everything, fought async/PTY freezing issues, and experimented with raw-text parsing.
-- We iterated through multiple versions of the orchestrator, monitor, session manager, and wrapper.
+- Designed the architecture and created professional docs (PROJECT_PROPOSAL.md, TIMELINE.md, progress_log.md)
+- Built SQLite schema, PTY backend, FastAPI orchestrator, and heartbeat summarizer
+- Trained a small 3.1B summarizer model with Unsloth
+- Fought async/PTY freezing issues and output capture problems
+- Iterated through multiple versions of the orchestrator, monitor, and wrapper
 
-We got sessions creating, commands executing, summaries saving to the DB, and basic feedback flowing back to Echo. Long-running tools (nmap scans, Metasploit) exposed the hardest part: reliably detecting when output is "complete" so the agent knows when to reason again.
+We got sessions creating, commands executing, summaries saving, and basic feedback flowing. Long-running tools (nmap, Metasploit) showed the hardest challenge: reliably detecting when output is complete.
 
-It was messy, frustrating at times, and we hit real limits with timing, output capture, and model overreach (Echo sometimes jumping to extra steps like packet capture). But we kept pushing.
+It was messy and frustrating at times, but we kept pushing.
+
+## Current Status (April 11, 2026)
+
+**Traction so far:**
+- v1-v2: 184 unique cloners + 2 YouTube links
+- v3: 107 unique cloners
+- v4: 80 unique cloners + 16 YouTube referrals
+- v5 (Rust hybrid): 123 unique cloners + 14 YouTube referrals (in 2 days)
+
+The entire portfolio has **42 unique cloners** across all repos.
+
+v4 (this Python proxy) is the version that got the most YouTube attention and stars. We are currently upgrading it to use tmux + cleaner output capture based on lessons learned from v5.
 
 ## What Currently Works
-
-- Creating and reusing named persistent sessions (`session:shell bash -i`, `session:msf msfconsole -q`, etc.)
-- Basic command execution via PTY
-- Heartbeat detection and summarization (works well for short commands)
-- Database persistence for sessions and summaries
+- Creating and reusing named persistent sessions
+- Basic command execution
+- Heartbeat detection and summarization (better for short commands)
+- Database persistence
 - Raw-text parsing in the wrapper
-- Safety checks and logging
-- Context summarization to manage token limits
 
-## Known Limitations (Being Honest)
+## Known Limitations
+- Long-running commands (full nmap scans, Metasploit modules) can still be summarized too early or incompletely.
+- Feedback loop to the main Echo model is sometimes inconsistent.
+- Model overreach: Echo can ignore "and nothing else" instructions.
 
-- Long-running commands (full nmap scans, Metasploit modules) often get summarized too early or incompletely.
-- Feedback loop to the main Echo model is inconsistent — Echo sometimes doesn't "see" results cleanly and hallucinates or repeats.
-- Model overreach: Echo can ignore "and nothing else" instructions and add extra steps.
-- The full parallel-session + perfect capture dream is still brittle.
-
-This is exactly why it's marked **experimental**. We fought hard with raw-text + PTY because we wanted something lighter and more natural than heavy JSON frameworks.
+This is experimental. We chose raw-text + PTY because we wanted something lighter and more natural than heavy JSON frameworks.
 
 ## Lessons Learned
-
-- Raw-text tool calling is powerful but requires extremely strict prompting and robust output parsing.
-- Long-running tool output capture is one of the hardest parts of local agents.
-- Complexity kills velocity — the full heartbeat + summarizer + orchestrator stack was ambitious for a solo learning project.
-- Persistence and documentation matter. Keeping progress_log.md and honest notes helped a lot.
+- Raw-text tool calling is powerful but requires strict prompting and robust output parsing.
+- Reliable long-running tool capture is one of the hardest parts.
 - Sometimes you have to simplify to make real progress.
+- Persistence and honest documentation matter.
 
 ## Tech Stack
-
-- **Main model**: Custom 14B Echo (Qwen-based, running via llama.cpp)
-- **Summarizer**: Fine-tuned Qwen 3.1B (Unsloth LoRA)
-- **Backend**: FastAPI + PTY sessions + SQLite
-- **Client**: Python wrapper (primary) 
-- **Other**: asyncio, regex parsing, ANSI stripping, JSONL logging
+- Main model: Custom 14B Echo (Qwen-based, via llama.cpp)
+- Summarizer: Fine-tuned Qwen 3.1B (Unsloth LoRA)
+- Backend: FastAPI + PTY/tmux sessions + SQLite
+- Client: Python wrapper
 
 ## How to Run (Current State)
 
-See `docs/` folder and `progress_log.md` for latest setup instructions.  
+See `docs/` folder and `progress_log.md` for latest instructions.
+
 Basic flow:
-1. Start the orchestrator (`python -m src.orchestrator.main`)
+1. Start the orchestrator
 2. Start llama.cpp servers for Echo (port 8080) and summarizer (port 8082)
 3. Run the wrapper: `python echo_wrapper.py`
+4. Or fill in paths and run echo_start_all.sh
 
-**Warning**: This is experimental red-team tooling. Use only on systems you own and have explicit permission to test.
+**Warning**: Experimental red-team tooling. Use only on systems you own and have permission to test.
 
-## Future Plans (When I Pick It Back Up)
-
-- From lessons learned from [Echo_tmux_agentv3](https://github.com/charlesericwilson-portfolio/Echo_tmux_agentv3) we are going to switch to tmux instead of pty as well as code in Rust
+## Future Plans
 - Improve completion detection for long-running commands
-- Add stricter safety layers (beyond prompt)
-- Possibly turn the summarizer into a clean standalone tool
+- Add stricter safety layers
+- Create better datasets for session vs command decision making
 
 ## Why This Repo Exists
 
-This isn't a polished product — it's the honest record of me (Charles) learning AI agents by building something ambitious. It shows persistence, outside-the-box thinking (raw-text sessions + PTY), and the real grind of making complex systems work locally.
+This is the honest record of me (Charles) learning AI agents by building something ambitious. It shows the wins, the pain, the mistakes, and the lessons.
 
 If you're exploring similar ideas, feel free to fork, open issues, or reach out. Feedback is welcome.
 
 ---
-
-Built with the assistance of Grok XAI — April 2026  
-Charles (Eric) — Youngsville, LA
-
+Built with the assistance of Grok (xAI) — April 2026  
+Charles (Eric) — Youngsville, LA  
 "Never giving up, even when it gets messy."
-
-## status Aprol 11, 2026
-This repo has had 80 unique cloners + 16 YouTube refferals. Next steps we will be improving output capture from lessons learned in v5.
