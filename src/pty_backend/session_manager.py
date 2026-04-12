@@ -1,105 +1,77 @@
-"""
-PTY Session Manager - Fixed v1.5 (non-blocking FD)
-"""
-
 import asyncio
-import os
-import pty
 import subprocess
-from typing import Dict, Optional
-from pathlib import Path
+from datetime import datetime
 
-BASE_DIR = Path(__file__).parent.parent.parent
-DB_PATH = BASE_DIR / "database" / "echo.db"
+class SessionManager:
+    def __init__(self):
+        self.active_sessions = {}  # session_id -> tmux_name
 
-active_sessions: Dict[str, 'PTYSession'] = {}
+    async def create_session(self, session_id: str, command: str = "bash -i"):
+        if session_id in self.active_sessions:
+            return f"Session '{session_id}' already exists"
 
-class PTYSession:
-    def __init__(self, session_id: str, command: str):
-        self.session_id = session_id
-        self.command = command
-        self.master_fd: Optional[int] = None
-        self.proc = None
-
-    async def start(self):
-        master, slave = pty.openpty()
-        self.master_fd = master
-        os.set_blocking(self.master_fd, False)   # ← THIS FIXES THE HANG
-
-        self.proc = subprocess.Popen(
-            self.command.split(),
-            stdin=slave,
-            stdout=slave,
-            stderr=slave,
-            close_fds=True,
-            start_new_session=True,
-        )
-        os.close(slave)
-        print(f"[PTY] ✅ Session '{self.session_id}' started (PID {self.proc.pid})")
-
-    async def send_command(self, command: str):
-        if not self.master_fd:
-            return {"error": "Session not started"}
+        tmux_name = f"echo_{session_id}"
         try:
-            await asyncio.to_thread(
-                os.write, self.master_fd, (command.rstrip() + "\n").encode('utf-8')
+            subprocess.run(["tmux", "new-session", "-d", "-s", tmux_name, command], check=True)
+            self.active_sessions[session_id] = tmux_name
+            return f"Session '{session_id}' created"
+        except Exception as e:
+            return f"Failed to create session: {str(e)}"
+
+    async def send_command(self, session_id: str, command: str):
+        if session_id not in self.active_sessions:
+            return f"Session '{session_id}' not found"
+
+        tmux_name = self.active_sessions[session_id]
+
+        # Safety check
+        if self.is_dangerous_command(command):
+            return f"Blocked: {command}"
+
+        try:
+            # Send command
+            subprocess.run(["tmux", "send-keys", "-t", tmux_name, command, "Enter"], check=True)
+            await asyncio.sleep(1.5)  # give time for output
+
+            # Capture recent output
+            result = subprocess.run(
+                ["tmux", "capture-pane", "-p", "-S", "-300", "-t", tmux_name],
+                capture_output=True, text=True, check=True
             )
-            await asyncio.sleep(0.6)   # small delay to let output appear
-            return {"status": "sent"}
+
+            raw = result.stdout
+            cleaned = self.clean_output(raw, command)
+            return cleaned
+
         except Exception as e:
-            print(f"[PTY] Write error: {e}")
-            return {"error": str(e)}
+            return f"Error: {str(e)}"
 
-    async def get_output(self) -> str:
-        if not self.master_fd:
-            return ""
-        try:
-            # Try multiple short reads to catch more output
-            output = ""
-            for _ in range(3):   # up to 3 quick reads
-                try:
-                    data = await asyncio.to_thread(os.read, self.master_fd, 8192)
-                    if data:
-                        output += data.decode('utf-8', errors='ignore')
-                    else:
-                        break
-                except (BlockingIOError, OSError):
-                    break
-            return output
-        except Exception as e:
-            print(f"[PTY] Read error: {e}")
-            return ""
+    def is_dangerous_command(self, command: str) -> bool:
+        dangerous = [
+            "rm -rf", "rm --recursive", "sudo rm", "rm -rf /",
+            "dd if=/dev/zero", "> /dev/sda", "mkfs", "format", "shred",
+            "chmod -R 777", "chown -R", "shutdown", "reboot",
+        ]
+        return any(d in command.lower() for d in dangerous)
 
-async def create_session(session_id: str, command: str = "bash -i"):
-    if session_id in active_sessions:
-        return {"status": "exists", "session_id": session_id}
+    def clean_output(self, output: str, original_command: str) -> str:
+        lines = output.splitlines()
+        cleaned = []
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith(("eric@", "root@", "msf >", "msf exploit")):
+                continue
+            if line == original_command:
+                continue
+            if "===ECHO_" in line:
+                continue
+            cleaned.append(line)
+        return "\n".join(cleaned[-120:])  # last 120 meaningful lines
 
-    session = PTYSession(session_id, command)
-    await session.start()
-    active_sessions[session_id] = session
-
-    # Make sure we write to the database
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO sessions (session_id, name, tool_type, status, command)
-            VALUES (?, ?, ?, 'active', ?)
-        """, (session_id, session_id, "general", command))
-        conn.commit()
-        conn.close()
-        print(f"[DB] ✓ Session '{session_id}' inserted into database")
-    except Exception as e:
-        print(f"[DB] Failed to insert session '{session_id}' into database: {e}")
-
-    return {"status": "created", "session_id": session_id}
-
-async def send_to_session(session_id: str, command: str):
-    if session_id not in active_sessions:
-        return {"error": f"Session {session_id} not found"}
-    session = active_sessions[session_id]
-    await session.send_command(command)
-    output = await session.get_output()
-    import re
-    clean = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', output)
-    return {"session_id": session_id, "output": clean.strip()}
+    async def close_session(self, session_id: str):
+        if session_id in self.active_sessions:
+            tmux_name = self.active_sessions[session_id]
+            subprocess.run(["tmux", "kill-session", "-t", tmux_name], check=False)
+            del self.active_sessions[session_id]

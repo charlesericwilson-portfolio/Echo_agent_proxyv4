@@ -1,128 +1,83 @@
-#!/usr/bin/env python3
-"""
-Echo Agent Proxy - Heartbeat Monitor v1.5
-Continuous polling until terminal is closed
-"""
-
 import asyncio
+import json
+from datetime import datetime
 import sqlite3
-import re
-import requests
-from pathlib import Path
-from collections import defaultdict
-
-from src.pty_backend.session_manager import active_sessions
-
-BASE_DIR = Path(__file__).parent.parent.parent
-DB_PATH = BASE_DIR / "database" / "echo.db"
-
-SUMMARIZER_URL = "http://localhost:8082/v1/chat/completions"
 
 class HeartbeatMonitor:
-    def __init__(self, interval: float = 1.0):
-        self.interval = interval
-        self.running = False
-        self.last_output = defaultdict(str)  # Track last seen output per session
+    def __init__(self, db_path="database/echo.db"):
+        self.db_path = db_path
+        self.conn = sqlite3.connect(db_path)
+        self._init_db()
 
-    async def start(self):
-        self.running = True
-        print("❤️ Heartbeat Monitor v1.5 - Continuous polling forever")
+    def _init_db(self):
+        self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS summaries (
+                id INTEGER PRIMARY KEY,
+                session_id TEXT,
+                summary_type TEXT,
+                content TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        self.conn.commit()
 
-        while self.running:
-            await self.check_sessions()
-            await asyncio.sleep(self.interval)
+    async def summarize_and_save(self, session_id: str, raw_output: str):
+        """Clean and summarize output, then save to DB"""
+        # Simple aggressive cleaning first
+        cleaned = self.clean_output(raw_output)
 
-    async def check_sessions(self):
-        """Poll every session forever. Only summarize when new output + completion marker"""
-        for session_id, session in list(active_sessions.items()):
-            try:
-                output = await session.get_output()
-                clean = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', output).strip()
-                output_len = len(clean)
+        # Call summarizer (your small model on port 8082)
+        summary = await self.call_summarizer(cleaned)
 
-                if output_len == 0:
-                    continue
+        # Save to database
+        self.conn.execute(
+            "INSERT INTO summaries (session_id, summary_type, content) VALUES (?, ?, ?)",
+            (session_id, "command_output", summary)
+        )
+        self.conn.commit()
 
-                # Debug
-                print(f"[Heartbeat] Checked '{session_id}' - {output_len} chars | Preview: {clean[:100]}...")
+        return summary
 
-                # Only act if we see NEW output
-                if clean != self.last_output[session_id]:
-                    self.last_output[session_id] = clean
+    def clean_output(self, output: str) -> str:
+        """Remove common noise"""
+        lines = output.splitlines()
+        cleaned = []
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith(("eric@", "root@", "msf >", "msf exploit")):
+                continue
+            if "echo '===ECHO_" in line:
+                continue
+            cleaned.append(line)
+        return "\n".join(cleaned[-100:])   # keep last 100 lines max
 
-                    completion_markers = ["$", "#", "msf6 >", "Nmap done", "scan report", "Host is up", "ports scanned"]
-                    if any(marker in clean for marker in completion_markers):
-                        print(f"[Heartbeat] → Completion detected for '{session_id}' - Summarizing")
-                        asyncio.create_task(self.safe_summarize(session_id, output))
-                    else:
-                        print(f"[Heartbeat] → New output but not complete yet for '{session_id}'")
-                else:
-                    print(f"[Heartbeat] → No new output for '{session_id}' - continuing to poll")
-
-            except Exception as e:
-                print(f"[Heartbeat] Error checking {session_id}: {e}")
-
-    async def safe_summarize(self, session_id: str, raw_output: str):
+    async def call_summarizer(self, text: str) -> str:
+        """Call your small summarizer model on port 8082"""
         try:
-            async with asyncio.timeout(10):
-                clean_output = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', raw_output)
-
-                prompt = f"""You are a precise red team summarizer.
-
-Summarize the following terminal output from session '{session_id}' in maximum 4 short bullet points.
-
-Focus ONLY on:
-- Open ports and services
-- Host information
-- Scan completion status
-- Any notable findings
-
-Ignore shell prompts and noise.
-
-Raw output:
-{clean_output[-1800:]}"""
-
-                payload = {
-                    "model": "Summarizer-3.1B-Q4_K_M.gguf",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.1,
-                    "max_tokens": 180,
-                    "stream": False
-                }
-
-                resp = requests.post(SUMMARIZER_URL, json=payload, timeout=10)
-                resp.raise_for_status()
-                data = resp.json()
-                content = data["choices"][0]["message"]["content"] if "choices" in data else ""
-
-                summary = str(content).strip()
-                if not summary or len(summary) < 10:
-                    summary = "No significant new output."
-
-                # Save to DB
-                conn = sqlite3.connect(DB_PATH)
-                cursor = conn.cursor()
-                cursor.execute("""
-                    INSERT INTO summaries (session_id, summary_type, content, raw_length)
-                    VALUES (?, 'heartbeat_summary', ?, ?)
-                """, (session_id, summary, len(raw_output)))
-                conn.commit()
-                conn.close()
-
-                print(f"[Heartbeat] ✓ Summary saved for '{session_id}'")
-
-                # Feed back to model as tool message (simple print for now)
-                feedback = f"[TOOL RESULT from {session_id}]: {summary}"
-                print(f"{Fore.CYAN}{feedback}{Style.RESET_ALL}")
-
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    "http://localhost:8082/v1/chat/completions",
+                    json={
+                        "model": "Summarizer-3.1B-Q4_K_M.gguf",
+                        "messages": [
+                            {"role": "system", "content": "You are a high-signal cleaner. Remove noise and return only the important technical output. Be concise."},
+                            {"role": "user", "content": text}
+                        ],
+                        "temperature": 0.1,
+                        "max_tokens": 400
+                    },
+                    timeout=30.0
+                )
+                data = response.json()
+                return data["choices"][0]["message"]["content"].strip()
         except Exception as e:
-            print(f"[Heartbeat] ❌ Summarization failed for '{session_id}': {e}")
+            return f"[Summarizer error: {str(e)}]\n\n{text[:500]}"   # fallback
 
-    def stop(self):
-        self.running = False
+# Global instance
+monitor = HeartbeatMonitor()
 
-
-heartbeat = HeartbeatMonitor()
-
-async def start_heartbeat():
-    await heartbeat.start()
+async def get_summary(session_id: str, raw_output: str):
+    return await monitor.summarize_and_save(session_id, raw_output)
