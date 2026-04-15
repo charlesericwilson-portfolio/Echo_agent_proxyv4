@@ -129,6 +129,8 @@ This is the honest record of me (Charles) learning AI agents by building somethi
 
 If you're exploring similar ideas, feel free to fork, open issues, or reach out. Feedback is welcome.
 
+Ongoing additional project a rust port of this project here [Echo_rust_project](https://github.com/charlesericwilson-portfolio/Echo_rust_agent_proxyv5)
+
 ---
 Built with the assistance of Grok (xAI) — April 2026  
 Charles (Eric) — Youngsville, LA  
