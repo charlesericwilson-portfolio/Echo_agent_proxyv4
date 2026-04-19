@@ -108,7 +108,7 @@ This is experimental. We chose raw-text + PTY because we wanted something lighte
 
 ## How to Run (Current State)
 
-See `docs/` folder and `progress_log.md` for latest instructions.
+See `docs/` folder and [progress_log_v4.md](https://github.com/charlesericwilson-portfolio/Echo_agent_proxyv4/blob/main/docs/progress_log_v4.md) for latest updates and screenshots.
 
 Basic flow:
 1. Start the orchestrator
