@@ -34,7 +34,7 @@ flowchart TD
 
 # Echo Agent Proxy
 
-This project started with the simple wrapper in [Echo_agent v1-2](https://github.com/charlesericwilson-portfolio/Echo_agentv1-2/tree/main/Echo_project).  
+This project started with the simple wrapper in [Echo_agent v1-2](https://github.com/charlesericwilson-portfolio/Echo_agentv1-2).  
 We later ported parts to Rust and experimented with tmux for better persistent sessions.
 
 **Built as a personal capstone / learning project** by Charles (Eric) in collaboration with Grok (xAI).
@@ -43,7 +43,7 @@ We later ported parts to Rust and experimented with tmux for better persistent s
 
 ## What We Built
 
-A local AI red-team agent using **raw-text tool calling** (`session:NAME command`) instead of JSON function calling.
+A local AI red-team agent using **raw-text tool calling** (`SESSION:NAME command`) instead of JSON function calling.
 
 Key features:
 - Persistent interactive sessions (bash, msfconsole, etc.)
