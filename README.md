@@ -61,7 +61,7 @@ Started when I shared an early version of "Echo" (a custom 14B model) with Grok 
 - Designed the architecture and created professional docs (PROJECT_PROPOSAL.md, TIMELINE.md, progress_log.md)
 - Built SQLite schema, PTY backend, FastAPI orchestrator, and heartbeat summarizer
 - Trained a small 3.1B summarizer model with Unsloth
-- Fought async/PTY freezing issues and output capture problems
+- Fought async/PTY freezing issues and output capture problems eventually switched to tmux and start and end markers
 - Iterated through multiple versions of the orchestrator, monitor, and wrapper
 
 We got sessions creating, commands executing, summaries saving, and basic feedback flowing. Long-running tools (nmap, Metasploit) showed the hardest challenge: reliably detecting when output is complete.
@@ -71,14 +71,12 @@ It was messy and frustrating at times, but we kept pushing.
 ## Current Status (April 11, 2026)
 
 **Traction so far:**
-- v1-v2: 184 unique cloners + 2 YouTube links
-- v3: 107 unique cloners
-- v4: 80 unique cloners + 16 YouTube referrals
-- v5 (Rust hybrid): 123 unique cloners + 14 YouTube referrals (in 2 days)
+- v1-v2: 235 unique cloners + 2 YouTube links
+- v3: 150 unique cloners
+- v4: 151 unique cloners + 16 YouTube referrals
+- v5 (Rust hybrid): 151 unique cloners + 14 YouTube referrals
 
-The entire portfolio has **42 unique cloners** across all repos.
-
-v4 (this Python proxy) is the version that got the most YouTube attention and stars. We are currently upgrading it to use tmux + cleaner output capture based on lessons learned from v5.
+v4 (this Python proxy) is the version that got the most YouTube attention and stars. We upgraded it to use tmux + cleaner output capture based on lessons learned from v5.
 
 ## What Currently Works
 - Creating and reusing named persistent sessions
@@ -90,12 +88,11 @@ v4 (this Python proxy) is the version that got the most YouTube attention and st
 ## Known Limitations
 - Long-running commands (full nmap scans, Metasploit modules) can still be summarized too early or incompletely.
 - Feedback loop to the main Echo model is sometimes inconsistent.
-- Model overreach: Echo can ignore "and nothing else" instructions.
 
 This is experimental. We chose raw-text + PTY because we wanted something lighter and more natural than heavy JSON frameworks.
 
 ## Lessons Learned
-- Raw-text tool calling is powerful but requires strict prompting and robust output parsing.
+- Raw-text tool calling is powerful but requires strict prompting and robust output parsing. Fixed with model training.
 - Reliable long-running tool capture is one of the hardest parts.
 - Sometimes you have to simplify to make real progress.
 - Persistence and honest documentation matter.
@@ -103,7 +100,7 @@ This is experimental. We chose raw-text + PTY because we wanted something lighte
 ## Tech Stack
 - Main model: Custom 14B Echo (Qwen-based, via llama.cpp)
 - Summarizer: Fine-tuned Qwen 3.1B (Unsloth LoRA)
-- Backend: FastAPI + PTY/tmux sessions + SQLite
+- Backend: FastAPI + tmux sessions + SQLite
 - Client: Python wrapper
 
 ## How to Run (Current State)
