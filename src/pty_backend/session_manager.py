@@ -4,13 +4,46 @@ from datetime import datetime
 
 class SessionManager:
     def __init__(self):
-        self.active_sessions = {}  # session_id -> tmux_name
+        self.active_sessions = {}
+        self._sync_active_sessions()
+
+    def _session_exists(self, tmux_name: str) -> bool:
+        try:
+            result = subprocess.run(
+                ["tmux", "has-session", "-t", tmux_name],
+                capture_output=True, check=False, timeout=5
+            )
+            return result.returncode == 0
+        except:
+            return False
+
+    def _sync_active_sessions(self):
+        try:
+            result = subprocess.run(
+                ["tmux", "list-sessions", "-F", "#{session_name}"],
+                capture_output=True, text=True, timeout=5, check=False
+            )
+            if result.returncode == 0:
+                for name in result.stdout.strip().splitlines():
+                    if name.startswith("echo_"):
+                        session_id = name[5:]
+                        self.active_sessions[session_id] = name
+        except:
+            pass
 
     async def create_session(self, session_id: str, command: str = "bash -i"):
-        if session_id in self.active_sessions:
-            return f"Session '{session_id}' already exists"
-
         tmux_name = f"echo_{session_id}"
+
+        if session_id in self.active_sessions:
+            if self._session_exists(tmux_name):
+                return f"Session '{session_id}' already active"
+            else:
+                del self.active_sessions[session_id]
+
+        if self._session_exists(tmux_name):
+            self.active_sessions[session_id] = tmux_name
+            return f"Session '{session_id}' re-entered"
+
         try:
             subprocess.run(["tmux", "new-session", "-d", "-s", tmux_name, command], check=True)
             self.active_sessions[session_id] = tmux_name
@@ -20,28 +53,46 @@ class SessionManager:
 
     async def send_command(self, session_id: str, command: str):
         if session_id not in self.active_sessions:
+            await self.create_session(session_id, "bash -i")
+
+        if session_id not in self.active_sessions:
             return f"Session '{session_id}' not found"
 
         tmux_name = self.active_sessions[session_id]
 
-        # Safety check
         if self.is_dangerous_command(command):
             return f"Blocked: {command}"
 
         try:
-            # Send command
-            subprocess.run(["tmux", "send-keys", "-t", tmux_name, command, "Enter"], check=True)
-            await asyncio.sleep(1.5)  # give time for output
+            ts = str(int(datetime.now().timestamp() * 1000))
+            start = f"===ECHO_START_{ts}==="
+            end = f"===ECHO_END_{ts}==="
 
-            # Capture recent output
-            result = subprocess.run(
-                ["tmux", "capture-pane", "-p", "-S", "-300", "-t", tmux_name],
-                capture_output=True, text=True, check=True
-            )
+            full_cmd = f"echo '{start}'; {command}; echo '{end}'"
+            subprocess.run(["tmux", "send-keys", "-t", tmux_name, full_cmd, "Enter"], check=True)
 
-            raw = result.stdout
-            cleaned = self.clean_output(raw, command)
-            return cleaned
+            output = ""
+            for _ in range(300):
+                result = subprocess.run(
+                    ["tmux", "capture-pane", "-p", "-S", "-500", "-t", tmux_name],
+                    capture_output=True, text=True, check=True
+                )
+                output = result.stdout
+                if end in output:
+                    break
+                await asyncio.sleep(0.5)
+
+            if end not in output:
+                return "Timed out"
+
+            start_idx = output.rfind(start)
+            end_idx = output.rfind(end)
+            raw = output[start_idx + len(start):end_idx].strip() if start_idx != -1 and end_idx != -1 else ""
+
+            if not raw:
+                raw = "\n".join(output.splitlines()[-30:])
+
+            return self.clean_output(raw, command)
 
         except Exception as e:
             return f"Error: {str(e)}"
@@ -55,20 +106,10 @@ class SessionManager:
         return any(d in command.lower() for d in dangerous)
 
     def clean_output(self, output: str, original_command: str) -> str:
+        """Only remove the marker flags — pass everything else to the summarizer"""
         lines = output.splitlines()
-        cleaned = []
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-            if line.startswith(("eric@", "root@", "msf >", "msf exploit")):
-                continue
-            if line == original_command:
-                continue
-            if "===ECHO_" in line:
-                continue
-            cleaned.append(line)
-        return "\n".join(cleaned[-120:])  # last 120 meaningful lines
+        cleaned = [line for line in lines if "===ECHO_" not in line]
+        return "\n".join(cleaned)
 
     async def close_session(self, session_id: str):
         if session_id in self.active_sessions:
