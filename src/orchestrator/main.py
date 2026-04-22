@@ -1,13 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import asyncio
-from src.pty_backend.session_manager import SessionManager   # ← Updated import
+from src.heartbeat.monitor import get_summary
+from src.pty_backend.session_manager import SessionManager
 
 app = FastAPI(title="Echo Agent Orchestrator v4 - TMUX Edition")
 session_manager = SessionManager()
 
 class ToolCall(BaseModel):
-    action: str          # "create_session" or "send_command"
+    action: str
     session_id: str
     command: str = None
 
@@ -21,8 +22,14 @@ async def handle_tool_call(call: ToolCall):
         elif call.action == "send_command":
             if not call.command:
                 raise HTTPException(status_code=400, detail="Command is required")
-            output = await session_manager.send_command(call.session_id, call.command)
-            return {"session_id": call.session_id, "output": output}
+
+            # Get raw output from session
+            raw_output = await session_manager.send_command(call.session_id, call.command)
+
+            # Summarize + save to DB
+            summary = await get_summary(call.session_id, raw_output)
+
+            return {"session_id": call.session_id, "output": summary}
 
         else:
             raise HTTPException(status_code=400, detail="Invalid action")
