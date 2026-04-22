@@ -68,16 +68,6 @@ We got sessions creating, commands executing, summaries saving, and basic feedba
 
 It was messy and frustrating at times, but we kept pushing.
 
-## Current Status (April 11, 2026)
-
-**Traction so far:**
-- v1-v2: 235 unique cloners + 2 YouTube links last 14 days
-- v3: 150 unique cloners last 14 days
-- v4: 151 unique cloners + 16 YouTube referrals last 14 days
-- v5 (Rust hybrid): 151 unique cloners + 14 YouTube referrals last 14 days
-
-v4 (this Python proxy) is the version that got the most YouTube attention and stars. We upgraded it to use tmux + cleaner output capture based on lessons learned from v5.
-
 ## What Currently Works
 - Creating and reusing named persistent sessions
 - Basic command execution
